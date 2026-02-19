@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>數字排序 — 腦力體操館</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  height: 100%; height: 100dvh;
+  overflow: hidden;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: #fff;
+  padding: 10px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 4px 8px;
+  flex-shrink: 0;
+}
+.back-btn {
+  color: #fff; text-decoration: none; font-size: 1rem; opacity: 0.8; padding: 8px 4px;
+}
+.stats { display: flex; gap: 12px; font-size: 1rem; }
+
+/* Hint bar: shows which number to find next */
+.hint-bar {
+  text-align: center;
+  padding: 10px 0;
+  flex-shrink: 0;
+}
+.hint-bar .next-num {
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+.hint-bar .next-num em {
+  color: #f9a825;
+  font-style: normal;
+  font-size: 1.8rem;
+}
+
+/* Board */
+.board {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  flex: 1;
+  min-height: 0;
+  align-content: center;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  font-size: clamp(1.6rem, 7vw, 2.8rem);
+  font-weight: bold;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s, background 0.3s, opacity 0.4s;
+  user-select: none;
+}
+.cell:active { transform: scale(0.93); }
+
+/* Pastel color palette for cells */
+.cell[data-color="0"] { background: rgba(129, 199, 132, 0.4); border: 2px solid rgba(129, 199, 132, 0.6); color: #c8e6c9; }
+.cell[data-color="1"] { background: rgba(100, 181, 246, 0.4); border: 2px solid rgba(100, 181, 246, 0.6); color: #bbdefb; }
+.cell[data-color="2"] { background: rgba(255, 183, 77, 0.4); border: 2px solid rgba(255, 183, 77, 0.6); color: #ffe0b2; }
+.cell[data-color="3"] { background: rgba(206, 147, 216, 0.4); border: 2px solid rgba(206, 147, 216, 0.6); color: #e1bee7; }
+.cell[data-color="4"] { background: rgba(240, 98, 146, 0.4); border: 2px solid rgba(240, 98, 146, 0.6); color: #f8bbd0; }
+.cell[data-color="5"] { background: rgba(77, 208, 225, 0.4); border: 2px solid rgba(77, 208, 225, 0.6); color: #b2ebf2; }
+
+.cell.correct {
+  background: rgba(76, 175, 80, 0.5) !important;
+  border-color: rgba(76, 175, 80, 0.7) !important;
+  color: #fff !important;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.cell.wrong {
+  animation: shake 0.35s ease;
+}
+@keyframes shake {
+  20% { transform: translateX(-6px); }
+  60% { transform: translateX(6px); }
+  100% { transform: translateX(0); }
+}
+
+/* Countdown overlay */
+.countdown-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50;
+  font-size: 6rem;
+  font-weight: bold;
+  color: #f9a825;
+}
+
+/* Preview phase: numbers shown briefly */
+.cell.preview {
+  font-size: clamp(1.6rem, 7vw, 2.8rem);
+}
+.cell.hidden-num {
+  color: transparent !important;
+}
+.cell.hidden-num::after {
+  content: '?';
+  color: rgba(255,255,255,0.5);
+  font-size: clamp(1.4rem, 6vw, 2.4rem);
+}
+
+/* Difficulty */
+.difficulty {
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  padding: 40px 16px;
+}
+.difficulty h2 { font-size: 1.5rem; margin-bottom: 4px; }
+.difficulty p { opacity: 0.7; margin-bottom: 16px; font-size: 0.95rem; }
+.diff-btn {
+  display: block; width: 100%; max-width: 280px; margin: 0 auto;
+  padding: 16px; border: none; border-radius: 14px;
+  font-size: 1.15rem; font-weight: bold; cursor: pointer; color: #fff;
+  -webkit-tap-highlight-color: transparent;
+}
+.diff-btn.easy { background: #4caf50; }
+.diff-btn.medium { background: #ff9800; }
+.diff-btn.hard { background: #e53935; }
+
+/* Mode toggle */
+.mode-toggle {
+  display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;
+}
+.mode-btn {
+  padding: 10px 18px; border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 12px; background: transparent; color: #fff;
+  font-size: 0.95rem; cursor: pointer;
+}
+.mode-btn.active {
+  border-color: #f9a825; background: rgba(249,168,37,0.15); font-weight: bold;
+}
+
+/* Result */
+.result-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.88);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px; z-index: 100; text-align: center;
+}
+.result-overlay.show { display: flex; }
+.result-overlay h2 { font-size: 1.8rem; margin-bottom: 10px; }
+.result-overlay .result-stats { font-size: 1.1rem; opacity: 0.8; margin-bottom: 6px; }
+.result-overlay .stars { font-size: 2.8rem; margin: 14px 0; }
+.result-overlay .msg { font-size: 0.95rem; opacity: 0.7; margin-bottom: 20px; }
+.result-btn {
+  padding: 14px 28px; border: none; border-radius: 14px;
+  font-size: 1.05rem; font-weight: bold; cursor: pointer; color: #fff; margin: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+.result-btn.home { background: #4caf50; }
+.result-btn.retry { background: rgba(255,255,255,0.15); }
+</style>
+</head>
+<body>
+
+<!-- Difficulty -->
+<div id="diffScreen" class="difficulty">
+  <h2>🔢 數字排序</h2>
+  <p>記住數字位置，按從小到大的順序點擊</p>
+  <div class="mode-toggle">
+    <button class="mode-btn active" onclick="setMode('visible')" id="modeVisible">看得見</button>
+    <button class="mode-btn" onclick="setMode('memory')" id="modeMemory">記憶模式</button>
+  </div>
+  <button class="diff-btn easy" onclick="startGame(6, 3, 2)">😊 簡單 (1-6)</button>
+  <button class="diff-btn medium" onclick="startGame(9, 3, 3)">🤔 普通 (1-9)</button>
+  <button class="diff-btn hard" onclick="startGame(16, 4, 4)">💪 挑戰 (1-16)</button>
+</div>
+
+<!-- Game -->
+<div id="gameScreen" style="display:none; flex-direction:column; flex:1;">
+  <div class="top-bar">
+    <a class="back-btn" href="../../">← 返回</a>
+    <div class="stats">
+      <span id="errDisplay">錯誤: 0</span>
+      <span id="timerDisplay">⏱ 0:00</span>
+    </div>
+  </div>
+  <div class="hint-bar">
+    <span class="next-num">找到 <em id="nextNum">1</em></span>
+  </div>
+  <div class="board" id="board"></div>
+</div>
+
+<!-- Countdown -->
+<div class="countdown-overlay" id="countdown" style="display:none;"></div>
+
+<!-- Result -->
+<div class="result-overlay" id="resultOverlay">
+  <h2>🎉 太棒了！</h2>
+  <div class="stars" id="resultStars"></div>
+  <div class="result-stats" id="resultStats"></div>
+  <div class="msg" id="resultMsg"></div>
+  <div>
+    <button class="result-btn home" onclick="goHome()">🏠 回首頁領獎勵</button>
+    <button class="result-btn retry" onclick="location.reload()">🔄 再玩一次</button>
+  </div>
+</div>
+
+<script>
+let gameMode = 'visible'; // 'visible' or 'memory'
+let numbers = [];
+let nextExpected = 1;
+let totalNums = 0;
+let errors = 0;
+let timerInterval = null;
+let startTime = 0;
+
+function setMode(m) {
+  gameMode = m;
+  document.getElementById('modeVisible').classList.toggle('active', m === 'visible');
+  document.getElementById('modeMemory').classList.toggle('active', m === 'memory');
+}
+
+function startGame(count, cols, rows) {
+  totalNums = count;
+  // Generate shuffled positions
+  numbers = Array.from({length: count}, (_, i) => i + 1);
+  numbers.sort(() => Math.random() - 0.5);
+
+  document.getElementById('diffScreen').style.display = 'none';
+  const gs = document.getElementById('gameScreen');
+  gs.style.display = 'flex';
+
+  const board = document.getElementById('board');
+  board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  board.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+
+  board.innerHTML = numbers.map((num, i) => {
+    const colorIdx = i % 6;
+    return `<div class="cell preview" data-num="${num}" data-color="${colorIdx}" onclick="tapCell(this)">${num}</div>`;
+  }).join('');
+
+  nextExpected = 1;
+  errors = 0;
+  updateErr();
+  document.getElementById('nextNum').textContent = '1';
+
+  if (gameMode === 'memory') {
+    // Show numbers for a few seconds, then hide
+    const previewTime = count <= 6 ? 4000 : count <= 9 ? 6000 : 8000;
+    setTimeout(() => {
+      document.querySelectorAll('.cell').forEach(c => {
+        c.classList.remove('preview');
+        c.classList.add('hidden-num');
+      });
+      startTimer();
+    }, previewTime);
+  } else {
+    startTimer();
+  }
+}
+
+function startTimer() {
+  startTime = Date.now();
+  timerInterval = setInterval(updateTimer, 1000);
+}
+
+function tapCell(el) {
+  if (el.classList.contains('correct')) return;
+  const num = parseInt(el.dataset.num);
+
+  if (num === nextExpected) {
+    el.classList.remove('hidden-num');
+    el.classList.add('correct');
+    el.textContent = num;
+    nextExpected++;
+    document.getElementById('nextNum').textContent = nextExpected;
+
+    if (nextExpected > totalNums) {
+      gameComplete();
+    }
+  } else {
+    errors++;
+    updateErr();
+    el.classList.add('wrong');
+    setTimeout(() => el.classList.remove('wrong'), 350);
+  }
+}
+
+function updateErr() {
+  document.getElementById('errDisplay').textContent = `錯誤: ${errors}`;
+}
+
+function updateTimer() {
+  const s = Math.floor((Date.now() - startTime) / 1000);
+  document.getElementById('timerDisplay').textContent = `⏱ ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function gameComplete() {
+  clearInterval(timerInterval);
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+
+  let stars = 3;
+  if (errors > totalNums) stars = 1;
+  else if (errors > Math.floor(totalNums / 3)) stars = 2;
+
+  document.getElementById('resultStars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+  document.getElementById('resultStats').textContent = `錯了 ${errors} 次，花了 ${Math.floor(elapsed/60)}分${elapsed%60}秒`;
+
+  const msgs = [
+    '反應超快！繼續保持 💪',
+    '很棒！手眼協調一流 🌟',
+    '越練越靈活，明天再來！🧠',
+    '厲害！專注力滿分 👏',
+  ];
+  document.getElementById('resultMsg').textContent = msgs[Math.floor(Math.random() * msgs.length)];
+  document.getElementById('resultOverlay').classList.add('show');
+
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'game-complete', game: 'number-sort', score: stars, time: elapsed, errors }, '*');
+  }
+}
+
+function goHome() {
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const stars = document.getElementById('resultStars').textContent.split('⭐').length - 1;
+  window.location.href = `../../?completed=1&game=number-sort&score=${stars}&time=${elapsed}`;
+}
+</script>
+</body>
+</html>
