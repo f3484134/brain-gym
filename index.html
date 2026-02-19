@@ -211,18 +211,32 @@ body {
 <script>
 const STORAGE_KEY = 'brain-gym-data';
 
-// All verified working YouTube videos
+// All verified working YouTube videos — Chinese language
 const REWARD_VIDEOS = [
+  // 🏛️ 歷史文化
   { title: '🏛️ 故宮國寶大遷徙', url: 'https://www.youtube.com/watch?v=v9LbimMUSZY' },
   { title: '🏛️ 故宮超限時展・華夏至寶', url: 'https://www.youtube.com/watch?v=BhQ7qY1eLJA' },
   { title: '🔧 我在故宮修文物（第一集）', url: 'https://www.youtube.com/watch?v=m81MOraQtz0' },
   { title: '🏯 故宮紫禁城紀實', url: 'https://www.youtube.com/watch?v=JE1CyLnXGjM' },
-  { title: '🧱 長城·中國的故事（第一集）', url: 'https://www.youtube.com/watch?v=3Z2Lc8Hn_lM' },
+  { title: '🧱 長城·中國的故事', url: 'https://www.youtube.com/watch?v=3Z2Lc8Hn_lM' },
+  // 🍜 美食
+  { title: '🍜 舌尖上的新年', url: 'https://www.youtube.com/watch?v=izaL8-9InqY' },
+  { title: '🍜 舌尖上的中國・一日三餐', url: 'https://www.youtube.com/watch?v=fZsSANHG3Qc' },
+  { title: '🍜 舌尖上的中國・時間的味道', url: 'https://www.youtube.com/watch?v=jjzF6-AfiI0' },
+  { title: '🍜 早餐中國・水粉和豬腳粉', url: 'https://www.youtube.com/watch?v=fzfq2mqL7lA' },
+  { title: '🍜 街頭美食小吃大合集', url: 'https://www.youtube.com/watch?v=M-JND9TA1Hw' },
+  // 🐾 自然科學
   { title: '🐾 自然的力量・野生動物', url: 'https://www.youtube.com/watch?v=Ar-YZoPNTS4' },
   { title: '🦁 中國瀕危野生動物全記錄', url: 'https://www.youtube.com/watch?v=X1YJg3eg0Jg' },
-  { title: '🌌 宇宙怪獸・黑洞紀錄片', url: 'https://www.youtube.com/watch?v=5N1HE3Hcshs' },
+  { title: '🌌 宇宙怪獸・黑洞', url: 'https://www.youtube.com/watch?v=5N1HE3Hcshs' },
   { title: '🚀 宇宙時空之旅精選', url: 'https://www.youtube.com/watch?v=tfNBUX8J8b4' },
-  { title: '🪐 暢想宇宙中的奇妙星球', url: 'https://www.youtube.com/watch?v=guY7g2Sz0Ec' },
+  // 😂 搞笑綜藝
+  { title: '😂 綜藝大熱門・超好笑總匯', url: 'https://www.youtube.com/watch?v=XRlR_Ibjslc' },
+  { title: '😂 綜藝大熱門・憲哥太棒啦', url: 'https://www.youtube.com/watch?v=gaWTzt4z2vs' },
+  { title: '😂 大熱門・唐從聖超好笑狗血詮釋', url: 'https://www.youtube.com/watch?v=gRLMfHSOiIU' },
+  // 💪 健康養生
+  { title: '💪 健身氣功六字訣（6分鐘跟練）', url: 'https://www.youtube.com/watch?v=zSWG0PpWFwk' },
+  { title: '🏔️ 走近大涼山', url: 'https://www.youtube.com/watch?v=zF9LJLLo4OA' },
 ];
 
 function getData() {
