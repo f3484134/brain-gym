@@ -1,0 +1,22 @@
+{
+  "name": "腦力體操館",
+  "short_name": "腦力體操",
+  "description": "每天動動腦，越玩越年輕",
+  "start_url": "/brain-gym/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

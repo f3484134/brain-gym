@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a1a2e">
+<link rel="manifest" href="manifest.json">
+<title>腦力體操館</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: #fff;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 20px;
+  padding-top: env(safe-area-inset-top, 20px);
+}
+.header {
+  text-align: center;
+  padding: 30px 0 20px;
+}
+.header h1 {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+.header .subtitle {
+  font-size: 1rem;
+  opacity: 0.7;
+}
+.streak-bar {
+  background: rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin: 20px 0;
+  text-align: center;
+}
+.streak-bar .streak-num {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #f9a825;
+}
+.streak-bar .streak-label {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+.streak-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.streak-dot {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem;
+}
+.streak-dot.done {
+  background: #f9a825;
+  color: #1a1a2e;
+  font-weight: bold;
+}
+.streak-dot.today {
+  border: 2px solid #f9a825;
+  background: rgba(249,168,37,0.2);
+}
+.games-grid {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+.game-card {
+  background: rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 24px;
+  text-decoration: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: transform 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.game-card:active {
+  transform: scale(0.97);
+  background: rgba(255,255,255,0.15);
+}
+.game-icon {
+  font-size: 2.5rem;
+  width: 60px; height: 60px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.1);
+  border-radius: 16px;
+  flex-shrink: 0;
+}
+.game-info h3 { font-size: 1.2rem; margin-bottom: 4px; }
+.game-info p { font-size: 0.85rem; opacity: 0.7; }
+.game-card.locked { opacity: 0.4; pointer-events: none; }
+.game-card .badge {
+  margin-left: auto;
+  background: #4caf50;
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+.game-card .badge.todo {
+  background: #f9a825;
+  color: #1a1a2e;
+}
+.game-card .badge.coming {
+  background: rgba(255,255,255,0.2);
+}
+.daily-complete {
+  text-align: center;
+  margin-top: 30px;
+  padding: 24px;
+  background: rgba(76,175,80,0.15);
+  border-radius: 20px;
+  display: none;
+}
+.daily-complete h3 { font-size: 1.3rem; margin-bottom: 8px; }
+.daily-complete a {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 14px 28px;
+  background: #e53935;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 14px;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🧠 腦力體操館</h1>
+  <p class="subtitle">每天動動腦，越玩越年輕</p>
+</div>
+
+<div class="streak-bar">
+  <div class="streak-num" id="streakNum">0</div>
+  <div class="streak-label">🔥 連續打卡天數</div>
+  <div class="streak-dots" id="streakDots"></div>
+</div>
+
+<div class="games-grid" id="gamesGrid">
+  <a class="game-card" href="games/memory-cards/" id="game-memory">
+    <div class="game-icon">🃏</div>
+    <div class="game-info">
+      <h3>記憶翻牌</h3>
+      <p>翻開配對，訓練短期記憶</p>
+    </div>
+    <span class="badge todo">今日任務</span>
+  </a>
+  <div class="game-card locked">
+    <div class="game-icon">🔢</div>
+    <div class="game-info">
+      <h3>數字排序</h3>
+      <p>快速排列，鍛鍊反應力</p>
+    </div>
+    <span class="badge coming">即將推出</span>
+  </div>
+  <div class="game-card locked">
+    <div class="game-icon">🎨</div>
+    <div class="game-info">
+      <h3>顏色挑戰</h3>
+      <p>看字辨色，考驗專注力</p>
+    </div>
+    <span class="badge coming">即將推出</span>
+  </div>
+  <div class="game-card locked">
+    <div class="game-icon">➕</div>
+    <div class="game-info">
+      <h3>心算練習</h3>
+      <p>加減乘除，保持頭腦靈活</p>
+    </div>
+    <span class="badge coming">即將推出</span>
+  </div>
+</div>
+
+<div class="daily-complete" id="dailyComplete">
+  <h3>🎉 今天的訓練完成了！</h3>
+  <p>辛苦了！看個有趣的影片休息一下吧</p>
+  <a id="rewardLink" href="#" target="_blank">▶️ 觀看今日獎勵影片</a>
+</div>
+
+<script>
+// --- Data Layer ---
+const STORAGE_KEY = 'brain-gym-data';
+
+const REWARD_VIDEOS = [
+  { title: '故宮國寶的秘密', url: 'https://www.youtube.com/watch?v=XGKqGJmMNHU' },
+  { title: '長城是怎麼建成的', url: 'https://www.youtube.com/watch?v=23oHqNEqRyo' },
+  { title: '茶的歷史', url: 'https://www.youtube.com/watch?v=LaLvVc1sS20' },
+  { title: '絲綢之路的故事', url: 'https://www.youtube.com/watch?v=vn3e37VWc0k' },
+  { title: '古代中國四大發明', url: 'https://www.youtube.com/watch?v=SCJkvnD2RjE' },
+  { title: '太空站裡的生活', url: 'https://www.youtube.com/watch?v=SGP6Y0Pnhe4' },
+  { title: '動物界的聰明天才', url: 'https://www.youtube.com/watch?v=ZerUbHmuY04' },
+];
+
+function getData() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { days: {}, streak: 0 };
+  } catch { return { days: {}, streak: 0 }; }
+}
+function saveData(d) { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function calcStreak(data) {
+  let streak = 0;
+  const d = new Date();
+  // If today is done, count from today; otherwise from yesterday
+  const key = todayKey();
+  if (!data.days[key]) d.setDate(d.getDate() - 1);
+  else { d.setTime(d.getTime()); }
+  for (let i = 0; i < 365; i++) {
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if (data.days[k]) { streak++; d.setDate(d.getDate() - 1); }
+    else break;
+  }
+  return streak;
+}
+
+function render() {
+  const data = getData();
+  const streak = calcStreak(data);
+  const today = todayKey();
+  const todayDone = !!data.days[today];
+
+  document.getElementById('streakNum').textContent = streak;
+
+  // Render 7-day dots
+  const dotsEl = document.getElementById('streakDots');
+  dotsEl.innerHTML = '';
+  const labels = ['一','二','三','四','五','六','日'];
+  const now = new Date();
+  const dow = now.getDay() || 7; // Mon=1...Sun=7
+  for (let i = 1; i <= 7; i++) {
+    const diff = i - dow;
+    const dd = new Date(now);
+    dd.setDate(dd.getDate() + diff);
+    const k = `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
+    const dot = document.createElement('div');
+    dot.className = 'streak-dot';
+    if (data.days[k]) dot.classList.add('done');
+    if (k === today) dot.classList.add('today');
+    dot.textContent = labels[i-1];
+    dotsEl.appendChild(dot);
+  }
+
+  // Game card badge
+  const badge = document.querySelector('#game-memory .badge');
+  if (todayDone) {
+    badge.textContent = '✅ 已完成';
+    badge.className = 'badge';
+    badge.style.background = '#4caf50';
+  }
+
+  // Show reward section if today done
+  if (todayDone) {
+    const complete = document.getElementById('dailyComplete');
+    complete.style.display = 'block';
+    const video = REWARD_VIDEOS[Math.floor(Math.random() * REWARD_VIDEOS.length)];
+    const link = document.getElementById('rewardLink');
+    link.href = video.url;
+    link.textContent = `▶️ ${video.title}`;
+  }
+}
+
+// Listen for game completion messages
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'game-complete') {
+    const data = getData();
+    data.days[todayKey()] = {
+      game: e.data.game,
+      score: e.data.score,
+      time: e.data.time,
+      timestamp: Date.now()
+    };
+    saveData(data);
+    render();
+  }
+});
+
+// Check URL params (fallback for game completion)
+const params = new URLSearchParams(location.search);
+if (params.get('completed')) {
+  const data = getData();
+  if (!data.days[todayKey()]) {
+    data.days[todayKey()] = {
+      game: params.get('game') || 'memory',
+      score: parseInt(params.get('score')) || 0,
+      time: parseInt(params.get('time')) || 0,
+      timestamp: Date.now()
+    };
+    saveData(data);
+  }
+  history.replaceState({}, '', location.pathname);
+}
+
+render();
+</script>
+</body>
+</html>
