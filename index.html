@@ -16,26 +16,27 @@ body {
   color: #fff;
   min-height: 100vh;
   min-height: 100dvh;
-  padding: 20px;
-  padding-top: env(safe-area-inset-top, 20px);
+  padding: 16px;
+  padding-top: max(16px, env(safe-area-inset-top));
+  overflow-x: hidden;
 }
 .header {
   text-align: center;
-  padding: 30px 0 20px;
+  padding: 24px 0 16px;
 }
 .header h1 {
-  font-size: 2rem;
-  margin-bottom: 8px;
+  font-size: 1.8rem;
+  margin-bottom: 6px;
 }
 .header .subtitle {
-  font-size: 1rem;
+  font-size: 0.95rem;
   opacity: 0.7;
 }
 .streak-bar {
   background: rgba(255,255,255,0.1);
   border-radius: 16px;
   padding: 16px 20px;
-  margin: 20px 0;
+  margin: 16px 0;
   text-align: center;
 }
 .streak-bar .streak-num {
@@ -71,18 +72,18 @@ body {
 }
 .games-grid {
   display: grid;
-  gap: 16px;
-  margin-top: 24px;
+  gap: 14px;
+  margin-top: 20px;
 }
 .game-card {
   background: rgba(255,255,255,0.08);
-  border-radius: 20px;
-  padding: 24px;
+  border-radius: 18px;
+  padding: 20px;
   text-decoration: none;
   color: #fff;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   transition: transform 0.15s, background 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
@@ -91,53 +92,60 @@ body {
   background: rgba(255,255,255,0.15);
 }
 .game-icon {
-  font-size: 2.5rem;
-  width: 60px; height: 60px;
+  font-size: 2.2rem;
+  width: 54px; height: 54px;
   display: flex; align-items: center; justify-content: center;
   background: rgba(255,255,255,0.1);
-  border-radius: 16px;
+  border-radius: 14px;
   flex-shrink: 0;
 }
-.game-info h3 { font-size: 1.2rem; margin-bottom: 4px; }
-.game-info p { font-size: 0.85rem; opacity: 0.7; }
+.game-info { flex: 1; min-width: 0; }
+.game-info h3 { font-size: 1.1rem; margin-bottom: 3px; }
+.game-info p { font-size: 0.8rem; opacity: 0.7; }
 .game-card.locked { opacity: 0.4; pointer-events: none; }
 .game-card .badge {
-  margin-left: auto;
   background: #4caf50;
   color: #fff;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   padding: 4px 10px;
   border-radius: 20px;
   font-weight: bold;
   flex-shrink: 0;
+  white-space: nowrap;
 }
-.game-card .badge.todo {
-  background: #f9a825;
-  color: #1a1a2e;
-}
-.game-card .badge.coming {
-  background: rgba(255,255,255,0.2);
-}
+.game-card .badge.todo { background: #f9a825; color: #1a1a2e; }
+.game-card .badge.coming { background: rgba(255,255,255,0.2); }
 .daily-complete {
   text-align: center;
-  margin-top: 30px;
-  padding: 24px;
+  margin-top: 24px;
+  padding: 24px 16px;
   background: rgba(76,175,80,0.15);
-  border-radius: 20px;
+  border-radius: 18px;
   display: none;
 }
-.daily-complete h3 { font-size: 1.3rem; margin-bottom: 8px; }
+.daily-complete h3 { font-size: 1.2rem; margin-bottom: 8px; }
+.daily-complete p { font-size: 0.9rem; opacity: 0.8; margin-bottom: 4px; }
 .daily-complete a {
   display: inline-block;
   margin-top: 12px;
-  padding: 14px 28px;
+  padding: 14px 24px;
   background: #e53935;
   color: #fff;
   text-decoration: none;
   border-radius: 14px;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: bold;
 }
+.seven-day-celebration {
+  text-align: center;
+  padding: 30px 16px;
+  background: linear-gradient(135deg, rgba(249,168,37,0.2), rgba(233,30,99,0.15));
+  border-radius: 18px;
+  margin-top: 20px;
+  display: none;
+}
+.seven-day-celebration h2 { font-size: 1.5rem; margin-bottom: 8px; }
+.seven-day-celebration .fireworks { font-size: 3rem; margin-bottom: 12px; }
 </style>
 </head>
 <body>
@@ -151,6 +159,12 @@ body {
   <div class="streak-num" id="streakNum">0</div>
   <div class="streak-label">🔥 連續打卡天數</div>
   <div class="streak-dots" id="streakDots"></div>
+</div>
+
+<div class="seven-day-celebration" id="sevenDayCelebration">
+  <div class="fireworks">🎆🏆🎆</div>
+  <h2>連續七天打卡！</h2>
+  <p>太了不起了！堅持就是勝利 💪</p>
 </div>
 
 <div class="games-grid" id="gamesGrid">
@@ -195,17 +209,20 @@ body {
 </div>
 
 <script>
-// --- Data Layer ---
 const STORAGE_KEY = 'brain-gym-data';
 
+// All verified working YouTube videos
 const REWARD_VIDEOS = [
-  { title: '故宮國寶的秘密', url: 'https://www.youtube.com/watch?v=XGKqGJmMNHU' },
-  { title: '長城是怎麼建成的', url: 'https://www.youtube.com/watch?v=23oHqNEqRyo' },
-  { title: '茶的歷史', url: 'https://www.youtube.com/watch?v=LaLvVc1sS20' },
-  { title: '絲綢之路的故事', url: 'https://www.youtube.com/watch?v=vn3e37VWc0k' },
-  { title: '古代中國四大發明', url: 'https://www.youtube.com/watch?v=SCJkvnD2RjE' },
-  { title: '太空站裡的生活', url: 'https://www.youtube.com/watch?v=SGP6Y0Pnhe4' },
-  { title: '動物界的聰明天才', url: 'https://www.youtube.com/watch?v=ZerUbHmuY04' },
+  { title: '🏛️ 故宮國寶大遷徙', url: 'https://www.youtube.com/watch?v=v9LbimMUSZY' },
+  { title: '🏛️ 故宮超限時展・華夏至寶', url: 'https://www.youtube.com/watch?v=BhQ7qY1eLJA' },
+  { title: '🔧 我在故宮修文物（第一集）', url: 'https://www.youtube.com/watch?v=m81MOraQtz0' },
+  { title: '🏯 故宮紫禁城紀實', url: 'https://www.youtube.com/watch?v=JE1CyLnXGjM' },
+  { title: '🧱 長城·中國的故事（第一集）', url: 'https://www.youtube.com/watch?v=3Z2Lc8Hn_lM' },
+  { title: '🐾 自然的力量・野生動物', url: 'https://www.youtube.com/watch?v=Ar-YZoPNTS4' },
+  { title: '🦁 中國瀕危野生動物全記錄', url: 'https://www.youtube.com/watch?v=X1YJg3eg0Jg' },
+  { title: '🌌 宇宙怪獸・黑洞紀錄片', url: 'https://www.youtube.com/watch?v=5N1HE3Hcshs' },
+  { title: '🚀 宇宙時空之旅精選', url: 'https://www.youtube.com/watch?v=tfNBUX8J8b4' },
+  { title: '🪐 暢想宇宙中的奇妙星球', url: 'https://www.youtube.com/watch?v=guY7g2Sz0Ec' },
 ];
 
 function getData() {
@@ -223,10 +240,8 @@ function todayKey() {
 function calcStreak(data) {
   let streak = 0;
   const d = new Date();
-  // If today is done, count from today; otherwise from yesterday
   const key = todayKey();
   if (!data.days[key]) d.setDate(d.getDate() - 1);
-  else { d.setTime(d.getTime()); }
   for (let i = 0; i < 365; i++) {
     const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     if (data.days[k]) { streak++; d.setDate(d.getDate() - 1); }
@@ -243,12 +258,17 @@ function render() {
 
   document.getElementById('streakNum').textContent = streak;
 
+  // 7-day celebration
+  if (streak >= 7 && streak % 7 === 0) {
+    document.getElementById('sevenDayCelebration').style.display = 'block';
+  }
+
   // Render 7-day dots
   const dotsEl = document.getElementById('streakDots');
   dotsEl.innerHTML = '';
   const labels = ['一','二','三','四','五','六','日'];
   const now = new Date();
-  const dow = now.getDay() || 7; // Mon=1...Sun=7
+  const dow = now.getDay() || 7;
   for (let i = 1; i <= 7; i++) {
     const diff = i - dow;
     const dd = new Date(now);
@@ -270,11 +290,13 @@ function render() {
     badge.style.background = '#4caf50';
   }
 
-  // Show reward section if today done
+  // Show reward
   if (todayDone) {
     const complete = document.getElementById('dailyComplete');
     complete.style.display = 'block';
-    const video = REWARD_VIDEOS[Math.floor(Math.random() * REWARD_VIDEOS.length)];
+    // Use day-based seed so same video all day
+    const dayNum = Math.floor(Date.now() / 86400000);
+    const video = REWARD_VIDEOS[dayNum % REWARD_VIDEOS.length];
     const link = document.getElementById('rewardLink');
     link.href = video.url;
     link.textContent = `▶️ ${video.title}`;
