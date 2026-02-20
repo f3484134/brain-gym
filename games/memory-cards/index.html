@@ -176,6 +176,16 @@ body {
 }
 .result-btn.home { background: #4caf50; }
 .result-btn.retry { background: rgba(255,255,255,0.15); }
+.result-btn.next-level { background: linear-gradient(135deg, #ff9800, #e53935); }
+.level-badge {
+  background: rgba(249,168,37,0.2);
+  border: 1.5px solid rgba(249,168,37,0.5);
+  border-radius: 8px;
+  padding: 2px 10px;
+  font-size: 0.95rem;
+  color: #f9a825;
+  font-weight: bold;
+}
 </style>
 </head>
 <body>
@@ -192,6 +202,7 @@ body {
   <div class="top-bar">
     <a class="back-btn" href="../../">← 返回</a>
     <div class="stats">
+      <span id="levelBadge" class="level-badge" style="display:none;">第1關</span>
       <span id="movesDisplay">步數: 0</span>
       <span id="timerDisplay">⏱ 0:00</span>
     </div>
@@ -205,6 +216,7 @@ body {
   <div class="result-stats" id="resultStats"></div>
   <div class="msg" id="resultMsg"></div>
   <div>
+    <button class="result-btn next-level" id="nextLevelBtn" style="display:none;" onclick="nextLevel()">🔥 挑戰下一關</button>
     <button class="result-btn home" onclick="goHome()">🏠 回首頁領獎勵</button>
     <button class="result-btn retry" onclick="location.reload()">🔄 再玩一次</button>
   </div>
@@ -212,6 +224,7 @@ body {
 
 <script>
 const EMOJIS = ['🍎','🍊','🍋','🍇','🍓','🍒','🥝','🍑','🌻','🌈','⭐','🎵','🐶','🐱','🦊','🐼','🌸','🎯'];
+const LEVELS = [{c:2,r:3},{c:3,r:4},{c:4,r:4},{c:4,r:5},{c:5,r:6}];
 let cards = [];
 let flipped = [];
 let matched = 0;
@@ -220,8 +233,15 @@ let totalPairs = 0;
 let timerInterval = null;
 let startTime = 0;
 let locked = false;
+let currentLevelIdx = 0;
+let currentLevel = 1;
+let flipBackDelay = 900;
+let currentCols = 0;
+let currentRows = 0;
 
 function startGame(c, rows) {
+  currentCols = c;
+  currentRows = rows;
   const count = c * rows;
   totalPairs = count / 2;
   const selected = EMOJIS.slice(0).sort(() => Math.random() - 0.5).slice(0, totalPairs);
@@ -230,6 +250,13 @@ function startGame(c, rows) {
   document.getElementById('diffScreen').style.display = 'none';
   const gs = document.getElementById('gameScreen');
   gs.style.display = 'flex';
+
+  // Update level badge
+  const badge = document.getElementById('levelBadge');
+  if (currentLevel > 0) {
+    badge.style.display = '';
+    badge.textContent = `第${currentLevel}關`;
+  }
 
   const board = document.getElementById('board');
   board.style.gridTemplateColumns = `repeat(${c}, 1fr)`;
@@ -249,6 +276,7 @@ function startGame(c, rows) {
   moves = 0; matched = 0; flipped = [];
   updateMoves();
   startTime = Date.now();
+  clearInterval(timerInterval);
   timerInterval = setInterval(updateTimer, 1000);
 }
 
@@ -280,7 +308,7 @@ function flipCard(el) {
         b.classList.remove('flipped','wrong');
         flipped = [];
         locked = false;
-      }, 900);
+      }, flipBackDelay);
     }
   }
 }
@@ -306,9 +334,24 @@ function gameComplete() {
   document.getElementById('resultMsg').textContent = msgs[Math.floor(Math.random() * msgs.length)];
   document.getElementById('resultOverlay').classList.add('show');
 
+  // Show next level button if not at max
+  const nextIdx = LEVELS.findIndex(l => l.c === currentCols && l.r === currentRows) + 1;
+  const btn = document.getElementById('nextLevelBtn');
+  btn.style.display = nextIdx > 0 && nextIdx < LEVELS.length ? '' : 'none';
+
   if (window.parent !== window) {
     window.parent.postMessage({ type: 'game-complete', game: 'memory-cards', score: stars, time: elapsed, moves }, '*');
   }
+}
+
+function nextLevel() {
+  const nextIdx = LEVELS.findIndex(l => l.c === currentCols && l.r === currentRows) + 1;
+  if (nextIdx >= LEVELS.length) return;
+  currentLevel++;
+  flipBackDelay = Math.max(400, flipBackDelay - 80);
+  document.getElementById('resultOverlay').classList.remove('show');
+  const lv = LEVELS[nextIdx];
+  startGame(lv.c, lv.r);
 }
 
 function goHome() {

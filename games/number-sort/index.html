@@ -179,6 +179,16 @@ body {
 }
 .result-btn.home { background: #4caf50; }
 .result-btn.retry { background: rgba(255,255,255,0.15); }
+.result-btn.next-level { background: linear-gradient(135deg, #ff9800, #e53935); }
+.level-badge {
+  background: rgba(249,168,37,0.2);
+  border: 1.5px solid rgba(249,168,37,0.5);
+  border-radius: 8px;
+  padding: 2px 10px;
+  font-size: 0.95rem;
+  color: #f9a825;
+  font-weight: bold;
+}
 </style>
 </head>
 <body>
@@ -201,6 +211,7 @@ body {
   <div class="top-bar">
     <a class="back-btn" href="../../">← 返回</a>
     <div class="stats">
+      <span id="levelBadge" class="level-badge" style="display:none;">第1關</span>
       <span id="errDisplay">錯誤: 0</span>
       <span id="timerDisplay">⏱ 0:00</span>
     </div>
@@ -221,6 +232,7 @@ body {
   <div class="result-stats" id="resultStats"></div>
   <div class="msg" id="resultMsg"></div>
   <div>
+    <button class="result-btn next-level" id="nextLevelBtn" style="display:none;" onclick="nextLevel()">🔥 挑戰下一關</button>
     <button class="result-btn home" onclick="goHome()">🏠 回首頁領獎勵</button>
     <button class="result-btn retry" onclick="location.reload()">🔄 再玩一次</button>
   </div>
@@ -228,12 +240,16 @@ body {
 
 <script>
 let gameMode = 'visible'; // 'visible' or 'memory'
+const NUM_LEVELS = [6, 9, 12, 16, 20, 25];
 let numbers = [];
 let nextExpected = 1;
 let totalNums = 0;
 let errors = 0;
 let timerInterval = null;
 let startTime = 0;
+let currentLevel = 1;
+let currentCount = 0;
+let previewTimeBonus = 0;
 
 function setMode(m) {
   gameMode = m;
@@ -243,13 +259,25 @@ function setMode(m) {
 
 function startGame(count, cols, rows) {
   totalNums = count;
-  // Generate shuffled positions
+  currentCount = count;
+  // Auto-calculate grid if not provided properly
+  if (!cols || !rows) {
+    cols = Math.ceil(Math.sqrt(count));
+    rows = Math.ceil(count / cols);
+  }
   numbers = Array.from({length: count}, (_, i) => i + 1);
   numbers.sort(() => Math.random() - 0.5);
 
   document.getElementById('diffScreen').style.display = 'none';
   const gs = document.getElementById('gameScreen');
   gs.style.display = 'flex';
+
+  // Update level badge
+  const badge = document.getElementById('levelBadge');
+  if (currentLevel > 0) {
+    badge.style.display = '';
+    badge.textContent = `第${currentLevel}關`;
+  }
 
   const board = document.getElementById('board');
   board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
@@ -263,11 +291,12 @@ function startGame(count, cols, rows) {
   nextExpected = 1;
   errors = 0;
   updateErr();
+  clearInterval(timerInterval);
   document.getElementById('nextNum').textContent = '1';
 
   if (gameMode === 'memory') {
     // Show numbers for a few seconds, then hide
-    const previewTime = count <= 6 ? 4000 : count <= 9 ? 6000 : 8000;
+    const previewTime = Math.max(2000, (count <= 6 ? 4000 : count <= 9 ? 6000 : 8000) - previewTimeBonus);
     setTimeout(() => {
       document.querySelectorAll('.cell').forEach(c => {
         c.classList.remove('preview');
@@ -336,9 +365,26 @@ function gameComplete() {
   document.getElementById('resultMsg').textContent = msgs[Math.floor(Math.random() * msgs.length)];
   document.getElementById('resultOverlay').classList.add('show');
 
+  // Show next level button if not at max
+  const curIdx = NUM_LEVELS.indexOf(currentCount);
+  const btn = document.getElementById('nextLevelBtn');
+  btn.style.display = curIdx >= 0 && curIdx < NUM_LEVELS.length - 1 ? '' : 'none';
+
   if (window.parent !== window) {
     window.parent.postMessage({ type: 'game-complete', game: 'number-sort', score: stars, time: elapsed, errors }, '*');
   }
+}
+
+function nextLevel() {
+  const curIdx = NUM_LEVELS.indexOf(currentCount);
+  if (curIdx < 0 || curIdx >= NUM_LEVELS.length - 1) return;
+  currentLevel++;
+  previewTimeBonus += 500;
+  document.getElementById('resultOverlay').classList.remove('show');
+  const nextCount = NUM_LEVELS[curIdx + 1];
+  const cols = Math.ceil(Math.sqrt(nextCount));
+  const rows = Math.ceil(nextCount / cols);
+  startGame(nextCount, cols, rows);
 }
 
 function goHome() {

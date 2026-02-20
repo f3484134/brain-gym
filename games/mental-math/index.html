@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>心算練習 — 腦力體操館</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  height: 100%; height: 100dvh;
+  overflow: hidden;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: #fff;
+  padding: 10px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+
+/* Difficulty screen */
+.difficulty {
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  padding: 40px 16px;
+}
+.difficulty h2 { font-size: 1.5rem; margin-bottom: 4px; }
+.difficulty p { opacity: 0.7; margin-bottom: 16px; font-size: 0.95rem; }
+.diff-btn {
+  display: block; width: 100%; max-width: 280px; margin: 0 auto;
+  padding: 16px; border: none; border-radius: 14px;
+  font-size: 1.15rem; font-weight: bold; cursor: pointer; color: #fff;
+  -webkit-tap-highlight-color: transparent;
+}
+.diff-btn.easy { background: #4caf50; }
+.diff-btn.medium { background: #ff9800; }
+.diff-btn.hard { background: #e53935; }
+
+/* Top bar */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 4px 8px;
+  flex-shrink: 0;
+}
+.back-btn {
+  color: #fff; text-decoration: none; font-size: 1rem; opacity: 0.8; padding: 8px 4px;
+}
+.top-info { display: flex; gap: 12px; font-size: 1rem; align-items: center; }
+.timer { font-variant-numeric: tabular-nums; }
+.timer.urgent { color: #ef5350; animation: pulse 0.5s ease infinite alternate; }
+@keyframes pulse { to { opacity: 0.5; } }
+
+/* Progress bar */
+.progress-wrap {
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+  height: 8px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #81c784);
+  border-radius: 8px;
+  transition: width 0.4s ease;
+}
+
+/* Problem display */
+.problem-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  min-height: 0;
+}
+.problem {
+  font-size: clamp(2.5rem, 10vw, 4rem);
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-align: center;
+  min-height: 1.2em;
+}
+
+/* Combo */
+.combo {
+  font-size: 1.1rem;
+  height: 1.6em;
+  transition: transform 0.2s;
+  color: #f9a825;
+}
+.combo.pop {
+  animation: comboPop 0.4s ease;
+}
+@keyframes comboPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.5); }
+  100% { transform: scale(1); }
+}
+
+/* Answer grid */
+.answers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 400px;
+  width: 100%;
+  margin: 0 auto;
+  flex-shrink: 0;
+  padding-bottom: 10px;
+}
+.ans-btn {
+  min-height: 70px;
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s, background 0.25s, border-color 0.25s;
+  user-select: none;
+  position: relative;
+}
+.ans-btn:active { transform: scale(0.95); }
+.ans-btn.correct {
+  background: rgba(76,175,80,0.5) !important;
+  border-color: #4caf50 !important;
+}
+.ans-btn.wrong {
+  background: rgba(229,57,53,0.5) !important;
+  border-color: #e53935 !important;
+}
+.ans-btn.reveal {
+  background: rgba(76,175,80,0.3) !important;
+  border-color: #4caf50 !important;
+}
+.ans-btn.disabled { pointer-events: none; opacity: 0.7; }
+
+/* Check animation */
+.ans-btn.correct::after {
+  content: '✓';
+  position: absolute;
+  font-size: 2rem;
+  animation: checkIn 0.35s ease;
+}
+@keyframes checkIn {
+  0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+/* Score bar */
+.score-bar {
+  flex-shrink: 0;
+  text-align: center;
+  padding: 6px 0;
+  font-size: 0.95rem;
+  opacity: 0.7;
+}
+
+/* Result overlay */
+.result-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.88);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px; z-index: 100; text-align: center;
+}
+.result-overlay.show { display: flex; }
+.result-overlay h2 { font-size: 1.8rem; margin-bottom: 10px; }
+.result-overlay .stars { font-size: 2.8rem; margin: 14px 0; }
+.result-overlay .result-stats { font-size: 1.05rem; opacity: 0.85; margin-bottom: 6px; line-height: 1.8; }
+.result-overlay .msg { font-size: 0.95rem; opacity: 0.7; margin-bottom: 20px; }
+.result-btn {
+  padding: 14px 28px; border: none; border-radius: 14px;
+  font-size: 1.05rem; font-weight: bold; cursor: pointer; color: #fff; margin: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+.result-btn.home { background: #4caf50; }
+.result-btn.retry { background: rgba(255,255,255,0.15); }
+.result-btn.next { background: #ff9800; }
+</style>
+</head>
+<body>
+
+<!-- Difficulty -->
+<div id="diffScreen" class="difficulty">
+  <h2>🧮 心算練習</h2>
+  <p>快速算出答案，挑戰你的心算極限！</p>
+  <button class="diff-btn easy" onclick="startGame('easy')">😊 簡單</button>
+  <button class="diff-btn medium" onclick="startGame('medium')">🤔 普通</button>
+  <button class="diff-btn hard" onclick="startGame('hard')">💪 挑戰</button>
+</div>
+
+<!-- Game -->
+<div id="gameScreen" style="display:none; flex-direction:column; flex:1;">
+  <div class="top-bar">
+    <a class="back-btn" href="../../">← 返回</a>
+    <div class="top-info">
+      <span id="levelDisplay"></span>
+      <span class="timer" id="timerDisplay">⏱ 8</span>
+    </div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+  <div class="problem-area">
+    <div class="combo" id="comboDisplay"></div>
+    <div class="problem" id="problemDisplay"></div>
+  </div>
+  <div class="answers" id="answersGrid"></div>
+  <div class="score-bar" id="scoreBar">正確: 0 / 0</div>
+</div>
+
+<!-- Result -->
+<div class="result-overlay" id="resultOverlay">
+  <h2 id="resultTitle">🎉 完成！</h2>
+  <div class="stars" id="resultStars"></div>
+  <div class="result-stats" id="resultStats"></div>
+  <div class="msg" id="resultMsg"></div>
+  <div>
+    <button class="result-btn home" onclick="goHome()">🏠 回首頁領獎勵</button>
+    <button class="result-btn retry" onclick="location.reload()">🔄 再玩一次</button>
+    <button class="result-btn next" id="nextBtn" onclick="nextLevel()">🔥 挑戰下一關</button>
+  </div>
+</div>
+
+<script>
+const LEVELS = {
+  easy:   { ops: ['+','-'], max: 20, rounds: 15, time: 8, label: '簡單' },
+  medium: { ops: ['+','-','×'], max: 50, rounds: 20, time: 6, label: '普通' },
+  hard:   { ops: ['+','-','×','÷'], max: 99, rounds: 25, time: 5, label: '挑戰' },
+};
+
+let cfg, round, corrects, combo, bestCombo, answered, roundTimer, timeLeft, roundTimes, currentCorrect;
+let extraRounds = 0, extraTime = 0, extraRange = 0;
+
+function startGame(level) {
+  const base = LEVELS[level];
+  cfg = {
+    ops: base.ops,
+    max: Math.min(base.max + extraRange, 999),
+    rounds: base.rounds + extraRounds,
+    time: Math.max(base.time + extraTime, 2),
+    label: base.label,
+    level,
+  };
+  round = 0; corrects = 0; combo = 0; bestCombo = 0; roundTimes = [];
+  document.getElementById('diffScreen').style.display = 'none';
+  document.getElementById('gameScreen').style.display = 'flex';
+  document.getElementById('levelDisplay').textContent = cfg.label;
+  nextRound();
+}
+
+function genProblem() {
+  const op = cfg.ops[Math.floor(Math.random() * cfg.ops.length)];
+  let a, b, ans;
+  const mx = cfg.max;
+  if (op === '+') {
+    a = rand(1, mx); b = rand(1, mx); ans = a + b;
+  } else if (op === '-') {
+    a = rand(2, mx); b = rand(1, a); ans = a - b;
+  } else if (op === '×') {
+    a = rand(2, Math.min(mx, 20)); b = rand(2, Math.min(mx, 12)); ans = a * b;
+  } else { // ÷
+    b = rand(2, Math.min(mx, 12));
+    ans = rand(1, Math.min(Math.floor(mx / b), 20));
+    a = ans * b;
+  }
+  return { text: `${a} ${op} ${b} = ?`, answer: ans };
+}
+
+function rand(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
+
+function genChoices(correct) {
+  const choices = new Set([correct]);
+  let tries = 0;
+  while (choices.size < 4 && tries < 100) {
+    const offset = rand(1, 10) * (Math.random() < 0.5 ? -1 : 1);
+    const v = correct + offset;
+    if (v >= 0 && v !== correct) choices.add(v);
+    tries++;
+  }
+  while (choices.size < 4) choices.add(correct + choices.size * 3);
+  const arr = [...choices];
+  // Fisher-Yates shuffle
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function nextRound() {
+  if (round >= cfg.rounds) { gameComplete(); return; }
+  round++;
+  answered = false;
+  const prob = genProblem();
+  currentCorrect = prob.answer;
+  const choices = genChoices(prob.answer);
+
+  document.getElementById('progressBar').style.width = `${((round - 1) / cfg.rounds) * 100}%`;
+  document.getElementById('problemDisplay').textContent = prob.text;
+  document.getElementById('scoreBar').textContent = `正確: ${corrects} / ${round - 1}`;
+
+  const grid = document.getElementById('answersGrid');
+  grid.innerHTML = choices.map(v =>
+    `<button class="ans-btn" data-val="${v}" onclick="pickAnswer(this,${v})">${v}</button>`
+  ).join('');
+
+  timeLeft = cfg.time;
+  updateTimerDisplay();
+  clearInterval(roundTimer);
+  roundTimer = setInterval(tick, 1000);
+  this._roundStart = Date.now();
+}
+
+function tick() {
+  timeLeft--;
+  updateTimerDisplay();
+  if (timeLeft <= 0) {
+    clearInterval(roundTimer);
+    timeout();
+  }
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timerDisplay');
+  el.textContent = `⏱ ${timeLeft}`;
+  el.classList.toggle('urgent', timeLeft <= 2);
+}
+
+function pickAnswer(btn, val) {
+  if (answered) return;
+  answered = true;
+  clearInterval(roundTimer);
+  const elapsed = (Date.now() - this._roundStart) / 1000;
+  roundTimes.push(elapsed);
+
+  const btns = document.querySelectorAll('.ans-btn');
+  btns.forEach(b => b.classList.add('disabled'));
+
+  if (val === currentCorrect) {
+    btn.classList.add('correct');
+    corrects++;
+    combo++;
+    if (combo > bestCombo) bestCombo = combo;
+    updateCombo();
+    setTimeout(nextRound, 500);
+  } else {
+    btn.classList.add('wrong');
+    combo = 0;
+    updateCombo();
+    // reveal correct
+    btns.forEach(b => { if (parseInt(b.dataset.val) === currentCorrect) b.classList.add('reveal'); });
+    setTimeout(nextRound, 1000);
+  }
+}
+
+function timeout() {
+  if (answered) return;
+  answered = true;
+  roundTimes.push(cfg.time);
+  combo = 0;
+  updateCombo();
+  const btns = document.querySelectorAll('.ans-btn');
+  btns.forEach(b => {
+    b.classList.add('disabled');
+    if (parseInt(b.dataset.val) === currentCorrect) b.classList.add('reveal');
+  });
+  setTimeout(nextRound, 1200);
+}
+
+function updateCombo() {
+  const el = document.getElementById('comboDisplay');
+  if (combo >= 2) {
+    el.textContent = `🔥×${combo} 連對！`;
+    if (combo % 5 === 0) {
+      el.classList.remove('pop');
+      void el.offsetWidth;
+      el.classList.add('pop');
+    }
+  } else {
+    el.textContent = '';
+  }
+}
+
+function gameComplete() {
+  clearInterval(roundTimer);
+  document.getElementById('progressBar').style.width = '100%';
+  const acc = corrects / cfg.rounds;
+  const stars = acc > 0.9 ? 3 : acc > 0.7 ? 2 : 1;
+  const avg = roundTimes.length ? (roundTimes.reduce((a, b) => a + b, 0) / roundTimes.length).toFixed(1) : '—';
+
+  document.getElementById('resultStars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+  document.getElementById('resultStats').innerHTML =
+    `正確: ${corrects} / ${cfg.rounds}<br>` +
+    `準確率: ${Math.round(acc * 100)}%<br>` +
+    `平均用時: ${avg} 秒<br>` +
+    `最高連對: ${bestCombo}`;
+
+  const msgs = ['心算王者！🧠✨', '速度驚人，繼續練！💪', '越練越快，加油！🚀', '腦力全開，太強了！🔥'];
+  document.getElementById('resultMsg').textContent = msgs[Math.floor(Math.random() * msgs.length)];
+  document.getElementById('resultOverlay').classList.add('show');
+
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'game-complete', game: 'mental-math', score: stars, accuracy: Math.round(acc * 100), bestCombo }, '*');
+  }
+}
+
+function goHome() {
+  const acc = corrects / cfg.rounds;
+  const stars = acc > 0.9 ? 3 : acc > 0.7 ? 2 : 1;
+  window.location.href = `../../?completed=1&game=mental-math&score=${stars}`;
+}
+
+function nextLevel() {
+  extraRounds += 5;
+  extraTime -= 0.5;
+  extraRange += 10;
+  document.getElementById('resultOverlay').classList.remove('show');
+  document.getElementById('gameScreen').style.display = 'none';
+  startGame(cfg.level);
+}
+</script>
+</body>
+</html>

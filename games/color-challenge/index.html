@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>顏色挑戰 — 腦力體操館</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: #fff;
+  padding: 10px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 4px 8px;
+  flex-shrink: 0;
+}
+.back-btn {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1rem;
+  opacity: 0.8;
+  padding: 8px 4px;
+}
+.stats {
+  display: flex;
+  gap: 12px;
+  font-size: 1rem;
+  align-items: center;
+}
+
+/* Timer bar */
+.timer-bar-container {
+  width: 100%;
+  height: 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-bottom: 8px;
+}
+.timer-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #8bc34a);
+  border-radius: 4px;
+  transition: width 0.1s linear;
+  width: 100%;
+}
+.timer-bar.warning { background: linear-gradient(90deg, #ff9800, #ffc107); }
+.timer-bar.danger { background: linear-gradient(90deg, #e53935, #ff5722); }
+
+/* Game area */
+.game-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 0;
+  gap: 16px;
+}
+
+.color-word {
+  font-size: clamp(3rem, 12vw, 5rem);
+  font-weight: 900;
+  text-align: center;
+  transition: transform 0.15s;
+  user-select: none;
+  min-height: 1.2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.combo-display {
+  font-size: 1.4rem;
+  font-weight: bold;
+  min-height: 2rem;
+  text-align: center;
+  transition: transform 0.2s, opacity 0.2s;
+}
+.combo-display.pop {
+  animation: comboPop 0.3s ease;
+}
+@keyframes comboPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+.score-display {
+  font-size: 1.1rem;
+  opacity: 0.8;
+  text-align: center;
+}
+
+/* Color buttons */
+.btn-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  padding: 10px 0;
+  flex-shrink: 0;
+  max-width: 400px;
+  width: 100%;
+  margin: 0 auto;
+}
+.color-btn {
+  flex: 1 1 calc(33.33% - 10px);
+  min-height: 60px;
+  max-width: calc(50% - 10px);
+  border: none;
+  border-radius: 14px;
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: #fff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s, box-shadow 0.1s;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  position: relative;
+  overflow: hidden;
+}
+.color-btn:active {
+  transform: scale(0.95);
+}
+
+/* Feedback flashes */
+.flash-correct {
+  animation: flashGreen 0.35s ease;
+}
+@keyframes flashGreen {
+  0% { box-shadow: 0 0 0 0 rgba(76,175,80,0.8); }
+  50% { box-shadow: 0 0 30px 10px rgba(76,175,80,0.6); }
+  100% { box-shadow: 0 0 0 0 rgba(76,175,80,0); }
+}
+.flash-wrong {
+  animation: shakeBtn 0.4s ease;
+}
+@keyframes shakeBtn {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+
+/* Screen flash overlay */
+.screen-flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.screen-flash.green { background: rgba(76,175,80,0.25); opacity: 1; }
+.screen-flash.red { background: rgba(229,57,53,0.25); opacity: 1; }
+
+/* Difficulty screen */
+.difficulty {
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  padding: 40px 16px;
+}
+.difficulty h2 { font-size: 1.5rem; margin-bottom: 4px; }
+.difficulty p { opacity: 0.7; margin-bottom: 16px; font-size: 0.95rem; }
+.diff-btn {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  font-size: 1.15rem;
+  font-weight: bold;
+  cursor: pointer;
+  color: #fff;
+  -webkit-tap-highlight-color: transparent;
+}
+.diff-btn.easy { background: #4caf50; }
+.diff-btn.medium { background: #ff9800; }
+.diff-btn.hard { background: #e53935; }
+
+/* Result overlay */
+.result-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 100;
+  text-align: center;
+}
+.result-overlay.show { display: flex; }
+.result-overlay h2 { font-size: 1.8rem; margin-bottom: 10px; }
+.result-overlay .result-stats { font-size: 1.1rem; opacity: 0.8; margin-bottom: 6px; }
+.result-overlay .stars { font-size: 2.8rem; margin: 14px 0; }
+.result-overlay .msg { font-size: 0.95rem; opacity: 0.7; margin-bottom: 20px; }
+.result-btn {
+  padding: 14px 28px;
+  border: none;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: bold;
+  cursor: pointer;
+  color: #fff;
+  margin: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+.result-btn.home { background: #4caf50; }
+.result-btn.retry { background: rgba(255,255,255,0.15); }
+.result-btn.next { background: #ff6f00; }
+
+/* Countdown overlay */
+.countdown-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 80;
+  font-size: 5rem;
+  font-weight: 900;
+}
+.countdown-overlay span {
+  animation: countPulse 0.6s ease;
+}
+@keyframes countPulse {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<div id="diffScreen" class="difficulty">
+  <h2>🎨 顏色挑戰</h2>
+  <p>看文字的<strong>顏色</strong>，不要被文字意思騙了！</p>
+  <button class="diff-btn easy" onclick="initGame('easy')">😊 簡單</button>
+  <button class="diff-btn medium" onclick="initGame('medium')">🤔 普通</button>
+  <button class="diff-btn hard" onclick="initGame('hard')">💪 挑戰</button>
+</div>
+
+<div id="gameScreen" style="display:none; flex-direction:column; flex:1;">
+  <div class="top-bar">
+    <a class="back-btn" href="../../">← 返回</a>
+    <div class="stats">
+      <span id="scoreDisplay">0/0</span>
+    </div>
+  </div>
+  <div class="timer-bar-container">
+    <div class="timer-bar" id="timerBar"></div>
+  </div>
+  <div class="game-area">
+    <div class="score-display" id="roundDisplay"></div>
+    <div class="color-word" id="colorWord"></div>
+    <div class="combo-display" id="comboDisplay"></div>
+  </div>
+  <div class="btn-grid" id="btnGrid"></div>
+</div>
+
+<div class="screen-flash" id="screenFlash"></div>
+<div class="countdown-overlay" id="countdownOverlay" style="display:none;"></div>
+
+<div class="result-overlay" id="resultOverlay">
+  <h2 id="resultTitle">🎉 完成！</h2>
+  <div class="stars" id="resultStars"></div>
+  <div class="result-stats" id="resultStats"></div>
+  <div class="result-stats" id="resultStats2"></div>
+  <div class="msg" id="resultMsg"></div>
+  <div>
+    <button class="result-btn home" onclick="goHome()">🏠 回首頁領獎勵</button>
+    <button class="result-btn retry" onclick="location.reload()">🔄 再玩一次</button>
+    <button class="result-btn next" id="nextBtn" onclick="nextChallenge()">🔥 挑戰下一關</button>
+  </div>
+</div>
+
+<script>
+const ALL_COLORS = [
+  { name: '紅色', hex: '#e53935' },
+  { name: '藍色', hex: '#1e88e5' },
+  { name: '綠色', hex: '#43a047' },
+  { name: '黃色', hex: '#fdd835' },
+  { name: '紫色', hex: '#8e24aa' },
+  { name: '橙色', hex: '#ff8f00' },
+];
+
+const DIFFICULTIES = {
+  easy:   { colors: 3, rounds: 10, time: 5 },
+  medium: { colors: 5, rounds: 15, time: 4 },
+  hard:   { colors: 6, rounds: 20, time: 3 },
+};
+
+let cfg = {};
+let currentDiff = '';
+let round = 0;
+let correct = 0;
+let combo = 0;
+let bestCombo = 0;
+let reactionTimes = [];
+let roundStartTime = 0;
+let timerInterval = null;
+let timerStart = 0;
+let gameActive = false;
+let totalElapsed = 0;
+let gameStartTime = 0;
+let extraLevel = 0;
+
+function initGame(diff) {
+  currentDiff = diff;
+  extraLevel = 0;
+  const base = DIFFICULTIES[diff];
+  cfg = { colors: base.colors, rounds: base.rounds, time: base.time };
+  startCountdown();
+}
+
+function nextChallenge() {
+  extraLevel++;
+  document.getElementById('resultOverlay').classList.remove('show');
+  cfg.rounds = cfg.rounds + 5;
+  cfg.time = Math.max(1.5, cfg.time - 0.5);
+  cfg.colors = Math.min(6, cfg.colors + 1);
+  startCountdown();
+}
+
+function startCountdown() {
+  document.getElementById('diffScreen').style.display = 'none';
+  document.getElementById('gameScreen').style.display = 'none';
+  const overlay = document.getElementById('countdownOverlay');
+  overlay.style.display = 'flex';
+  let count = 3;
+  overlay.innerHTML = `<span>${count}</span>`;
+  const iv = setInterval(() => {
+    count--;
+    if (count > 0) {
+      overlay.innerHTML = `<span>${count}</span>`;
+    } else {
+      clearInterval(iv);
+      overlay.style.display = 'none';
+      startGame();
+    }
+  }, 600);
+}
+
+function startGame() {
+  const gs = document.getElementById('gameScreen');
+  gs.style.display = 'flex';
+  round = 0; correct = 0; combo = 0; bestCombo = 0;
+  reactionTimes = [];
+  gameStartTime = Date.now();
+  gameActive = true;
+  buildButtons();
+  nextRound();
+}
+
+function buildButtons() {
+  const grid = document.getElementById('btnGrid');
+  const colors = ALL_COLORS.slice(0, cfg.colors);
+  grid.innerHTML = colors.map((c, i) =>
+    `<button class="color-btn" style="background:${c.hex};" onclick="answer(${i})">${c.name}</button>`
+  ).join('');
+}
+
+function nextRound() {
+  if (round >= cfg.rounds) { endGame(); return; }
+  round++;
+  document.getElementById('scoreDisplay').textContent = `${correct}/${round - 1}`;
+  document.getElementById('roundDisplay').textContent = `第 ${round}/${cfg.rounds} 題`;
+  updateComboDisplay();
+
+  const colors = ALL_COLORS.slice(0, cfg.colors);
+  // Pick word and ink color (must differ)
+  let wordIdx = Math.floor(Math.random() * colors.length);
+  let inkIdx;
+  do { inkIdx = Math.floor(Math.random() * colors.length); } while (inkIdx === wordIdx);
+
+  const wordEl = document.getElementById('colorWord');
+  wordEl.textContent = colors[wordIdx].name;
+  wordEl.style.color = colors[inkIdx].hex;
+  wordEl.dataset.answer = inkIdx;
+  wordEl.style.transform = 'scale(1)';
+
+  roundStartTime = Date.now();
+  startTimer();
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timerStart = Date.now();
+  const bar = document.getElementById('timerBar');
+  bar.style.width = '100%';
+  bar.className = 'timer-bar';
+
+  timerInterval = setInterval(() => {
+    const elapsed = (Date.now() - timerStart) / 1000;
+    const pct = Math.max(0, 1 - elapsed / cfg.time) * 100;
+    bar.style.width = pct + '%';
+    if (pct < 30) bar.className = 'timer-bar danger';
+    else if (pct < 60) bar.className = 'timer-bar warning';
+    else bar.className = 'timer-bar';
+
+    if (elapsed >= cfg.time) {
+      clearInterval(timerInterval);
+      // Time's up — wrong
+      combo = 0;
+      flashScreen('red');
+      shakeWord();
+      setTimeout(nextRound, 400);
+    }
+  }, 50);
+}
+
+function answer(idx) {
+  if (!gameActive) return;
+  clearInterval(timerInterval);
+  const rt = Date.now() - roundStartTime;
+  reactionTimes.push(rt);
+  const correctIdx = parseInt(document.getElementById('colorWord').dataset.answer);
+
+  if (idx === correctIdx) {
+    correct++;
+    combo++;
+    if (combo > bestCombo) bestCombo = combo;
+    flashScreen('green');
+    flashButton(idx, true);
+  } else {
+    combo = 0;
+    flashScreen('red');
+    flashButton(idx, false);
+    shakeWord();
+  }
+
+  document.getElementById('scoreDisplay').textContent = `${correct}/${round}`;
+  updateComboDisplay();
+  setTimeout(nextRound, 350);
+}
+
+function updateComboDisplay() {
+  const el = document.getElementById('comboDisplay');
+  if (combo >= 2) {
+    el.textContent = `🔥×${combo}`;
+    el.classList.remove('pop');
+    void el.offsetWidth;
+    el.classList.add('pop');
+  } else {
+    el.textContent = '';
+  }
+}
+
+function flashScreen(color) {
+  const el = document.getElementById('screenFlash');
+  el.className = 'screen-flash ' + color;
+  setTimeout(() => { el.className = 'screen-flash'; }, 200);
+}
+
+function flashButton(idx, isCorrect) {
+  const btns = document.querySelectorAll('.color-btn');
+  if (btns[idx]) {
+    btns[idx].classList.add(isCorrect ? 'flash-correct' : 'flash-wrong');
+    setTimeout(() => {
+      btns[idx].classList.remove('flash-correct', 'flash-wrong');
+    }, 400);
+  }
+}
+
+function shakeWord() {
+  const el = document.getElementById('colorWord');
+  el.style.transform = 'scale(1)';
+  el.animate([
+    { transform: 'translateX(-6px)' },
+    { transform: 'translateX(6px)' },
+    { transform: 'translateX(-4px)' },
+    { transform: 'translateX(4px)' },
+    { transform: 'translateX(0)' },
+  ], { duration: 300 });
+}
+
+function endGame() {
+  gameActive = false;
+  clearInterval(timerInterval);
+  totalElapsed = Math.floor((Date.now() - gameStartTime) / 1000);
+
+  const accuracy = cfg.rounds > 0 ? correct / cfg.rounds : 0;
+  const pct = Math.round(accuracy * 100);
+  const avgRT = reactionTimes.length > 0 ? Math.round(reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length) : 0;
+  let stars = 1;
+  if (accuracy > 0.9) stars = 3;
+  else if (accuracy > 0.7) stars = 2;
+
+  document.getElementById('resultTitle').textContent = stars === 3 ? '🎉 太厲害了！' : stars === 2 ? '👍 不錯喔！' : '💪 繼續加油！';
+  document.getElementById('resultStars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+  document.getElementById('resultStats').textContent = `正確率 ${pct}% · 平均反應 ${avgRT}ms`;
+  document.getElementById('resultStats2').textContent = `最佳連擊 🔥×${bestCombo}`;
+  const msgs = ['大腦反應超快！🧠','史楚普效應擋不住你！💪','顏色大師就是你！🎨','越練越強！繼續挑戰 🔥'];
+  document.getElementById('resultMsg').textContent = msgs[Math.floor(Math.random() * msgs.length)];
+  document.getElementById('resultOverlay').classList.add('show');
+
+  if (window.parent !== window) {
+    window.parent.postMessage({
+      type: 'game-complete',
+      game: 'color-challenge',
+      score: stars,
+      time: totalElapsed,
+      accuracy: pct,
+      bestCombo,
+    }, '*');
+  }
+}
+
+function goHome() {
+  const accuracy = cfg.rounds > 0 ? Math.round(correct / cfg.rounds * 100) : 0;
+  const stars = accuracy > 90 ? 3 : accuracy > 70 ? 2 : 1;
+  window.location.href = `../../?completed=1&game=color-challenge&score=${stars}&time=${totalElapsed}`;
+}
+</script>
+</body>
+</html>
